@@ -3,8 +3,8 @@ clear;
 tic; % start clock
 ticBytes(gcp);
 % ===== add path =====
-this_dir = fileparts(mfilename('fullpath'));
-addpath(genpath(fullfile(this_dir, '..'))); % add shc_kubo/+shc
+%this_dir = fileparts(mfilename('fullpath'));
+%addpath(genpath(fullfile(this_dir, '..'))); % add shc_kubo/+shc
 
 % ===== load model =====
 %Sanity Check
@@ -14,24 +14,24 @@ addpath(genpath(fullfile(this_dir, '..'))); % add shc_kubo/+shc
 % ===== params =====
 %Sanity Check
 %params.ftn58              = ftn;
-params.Nk                 = 51;
+params.Nk                 = 21;
 params.eta                = 5e-3;           % eV (fixed in cache; change => re-precompute)
 params.electronic_charge  = 1;              % lattice units
 params.hbar               = 1;              % lattice units
 params.alpha              = 'x';
-params.beta               = 'z';
-params.gamma              = 'x';
+params.beta               = 'y';
+params.gamma              = 'z';
 params.shift              = [0 0 0];        % can test [0.5 0.5 0.5]/Nk
 
 Ef                        = 3.0;
 
 % ===== 0) DSM =====
-params.eta_band;   % <-- 用於 a1,a2 的 η（與 Kubo 展寬不同名）
-params.txy;
-params.tz;
-params.beta;
-params.gamma;
-params.M;
+params.eta_band = 0.1;   % <-- 用於 a1,a2 的 η（與 Kubo 展寬不同名）
+params.txy = 1.5;
+params.tz = 1;
+params.beta = 0;
+params.gamma = 0;
+params.M = 1;
 % ===== 1) precompute once =====
 cache = shc.precompute_kgrid(params);
 

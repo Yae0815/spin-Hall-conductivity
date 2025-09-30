@@ -17,7 +17,7 @@ function cache = precompute_kgrid(params)
     % ---- builders ----
     %Sanity Check
     %build = shc.make_builders(ftn);
-    build = shc_builders_dsm_taguchi(params);
+    build = shc.shc_builders_dsm_taguchi(params);
     Norb  = build.Norb;
     assert(Norb==4, 'This precompute is optimized for Norb=4.');
     Sg    = loc_pick_spin_op(gamma, Norb);
