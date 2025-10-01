@@ -9,7 +9,7 @@ clear; clc;
 %% ===== User controls =====
 % --- Lattice model ratios（建議覆現區間，含 TDSM/DSM 轉換） ---
 txy_over_tz_list = [0.5, 1.0, 1.5];      % 多條曲線
-M_over_tz_grid   = linspace(0.0, 2.0, 21);
+M_over_tz_grid   = linspace(0.05, 2.0, 196);
 
 % --- 固定的比例（對照 Taguchi 常用設定） ---
 eta_unit      = 0.89;          % 整體能量尺度（eV）
@@ -18,7 +18,7 @@ beta_over_tz  = 0.67;          % β/tz
 gamma_over_tz = 0.335;         % γ/tz (= (1/2)*β/tz)
 
 % --- 數值積分與展寬 ---
-params.Nk   = 41;              % odd; 增大可更平滑
+params.Nk   = 91;              % odd; 增大可更平滑
 params.eta  = 1e-4;            % Kubo broadening (eV)
 params.Ef   = 0.0;
 params.electronic_charge = 1.0;
@@ -89,55 +89,49 @@ for ir = 1:nRat
 end
 elapsed = toc(t_start);
 
-%% ===== Unit conversion for plotting =====
+%% ===== Unit conversion for plotting (LaTeX label) =====
 switch lower(out_units)
     case 'si'
-        Y = SHC_lattice .* scale_SI;  % 數值直接是圖3(b)的 y 值；軸標標註 (ħ/e)(Ω·m)^-1
-        ylab = '\sigma^{s_z}_{xy}  [ (ħ/e)\,(\Omega\cdot m)^{-1} ]';
+        Y = SHC_lattice .* scale_SI;   % (ħ/e)(Ω·m)^-1
+        ylab_tex = '$\sigma^{s_z}_{xy}\;[(\hbar/e)(\Omega\cdot m)^{-1}]$';
         units_tag = 'SI';
     case 'lattice'
-        Y = SHC_lattice;
-        ylab = '\sigma^{s_z}_{xy} (lattice units)';
+        Y = SHC_lattice;               % lattice units
+        ylab_tex = '$\sigma^{s_z}_{xy}\ \mathrm{(lattice\;units)}$';
         units_tag = 'lattice';
     otherwise
         error('Unknown out_units: %s', out_units);
 end
 
 %% ===== Plot =====
+LW = 2.0;    % 線寬
+FS = 16;     % 標題/標籤字體
+FSTick = 14; % 刻度字體
+
 figure('Color','w');
 hold on;
 for ir = 1:nRat
-    plot(M_over_tz_grid, Y(:,ir), 'LineWidth', 1.8);
+    plot(M_over_tz_grid, Y(:,ir), 'LineWidth', LW);
 end
 grid on;
-xlabel('M/t_z','FontSize',12);
-ylabel(ylab,'FontSize',12);
-legstr = arrayfun(@(x) sprintf('t_{xy}/t_z = %.3f', x), txy_over_tz_list, 'UniformOutput', false);
-legend(legstr, 'Location','best', 'Interpreter','tex');
-title(sprintf('Spin Hall: \\sigma^{s_z}_{xy} vs M/t_z  (Nk=%d, \\eta=%.0e eV, %s)', ...
-      params.Nk, params.eta, params.method));
+xlabel('$M/t_z$','Interpreter','latex','FontSize',FS);
+ylabel(ylab_tex,'Interpreter','latex','FontSize',FS);
+set(gca,'FontSize',FSTick,'LineWidth',1);
 
-%% ===== Save =====
-ts = char(datetime('now','Format','yyyyMMdd_HHmmss'));
+legstr = arrayfun(@(x) sprintf('$t_{xy}/t_z = %.3f$', x), txy_over_tz_list, 'UniformOutput', false);
+legend(legstr, 'Location','best', 'Interpreter','latex','FontSize',FSTick);
+
+title(sprintf('Spin Hall: $\\sigma^{s_z}_{xy}$ vs $M/t_z$  (Nk=%d, $\\eta$=%.0e eV, %s)', ...
+      params.Nk, params.eta, params.method), 'Interpreter','latex','FontSize',FS);
+
+% ===== After the first plot (Y) =====
+if ~exist('ts','var'), ts = char(datetime('now','Format','yyyyMMdd_HHmmss')); end
+if ~exist('units_tag','var'), units_tag = 'SI'; end
 png_name = sprintf('SHC_MoverTz_scan_%s_%s.png', ts, units_tag);
-mat_name = sprintf('SHC_MoverTz_scan_%s_%s.mat', ts, units_tag);
-
+% 若要固定範圍，請先呼叫 axis([...]) 再存
 exportgraphics(gcf, png_name, 'Resolution', 220);
-
-meta = struct( ...
-    'Nk', params.Nk, 'broadening_eV', params.eta, 'Ef', params.Ef, ...
-    'eta_unit', eta_unit, 'tz_over_eta', tz_over_eta, ...
-    'beta_over_tz', beta_over_tz, 'gamma_over_tz', gamma_over_tz, ...
-    'txy_over_tz_list', txy_over_tz_list, 'M_over_tz_grid', M_over_tz_grid, ...
-    'elapsed_sec', elapsed, 'note', 'sigma^{s_z}_{xy} only; Taguchi lattice model', ...
-    'units', out_units, 'a_angstrom', a_angstrom, ...
-    'scale_SI_per_lattice', scale_SI, ...
-    'comm_at_Gamma', comm_at_Gamma, ...
-    'method', params.method ...
-);
-save(mat_name, 'SHC_lattice', 'Y', 'meta');
-
-fprintf('\nSaved: %s  and  %s\n', mat_name, png_name);
+savefig(gcf, strrep(png_name, '.png', '.fig'));  % 可選
+fprintf('Saved: %s\n', png_name);
 
 %% ===== Plot (-Y) =====
 Y_neg = -Y;
@@ -145,30 +139,31 @@ Y_neg = -Y;
 figure('Color','w');
 hold on;
 for ir = 1:nRat
-    plot(M_over_tz_grid, Y_neg(:,ir), 'LineWidth', 1.8);
+    plot(M_over_tz_grid, Y_neg(:,ir), 'LineWidth', LW);
 end
 grid on;
-xlabel('M/t_z','FontSize',12);
-% y 標籤沿用同一單位，但在 title 註記「-Y」
-ylabel(ylab,'FontSize',12);
-legend(legstr, 'Location','best', 'Interpreter','tex');
-title(sprintf('Spin Hall: -\\sigma^{s_z}_{xy} vs M/t_z  (Nk=%d, \\eta=%.0e eV, %s)', ...
-      params.Nk, params.eta, params.method));
+xlabel('$M/t_z$','Interpreter','latex','FontSize',FS);
+ylabel(ylab_tex,'Interpreter','latex','FontSize',FS); % 同單位標籤
+set(gca,'FontSize',FSTick,'LineWidth',1);
 
-%% ===== Save (-Y) =====
+legend(legstr, 'Location','best', 'Interpreter','latex','FontSize',FSTick);
+title(sprintf('Spin Hall: $-\\sigma^{s_z}_{xy}$ vs $M/t_z$  (Nk=%d, $\\eta$=%.0e eV, %s)', ...
+      params.Nk, params.eta, params.method), 'Interpreter','latex','FontSize',FS);
+
+
 png_name_neg = sprintf('SHC_MoverTz_scan_%s_%s_neg.png', ts, units_tag);
+% 也可在這裡先 axis([x_min x_max y_min y_max])
 exportgraphics(gcf, png_name_neg, 'Resolution', 220);
-
-% （可選）把 Y_neg 一起存進 .mat 方便之後重畫
-if exist('mat_name','var') && isfile(mat_name)
-    S = whos('-file', mat_name);
-    tosave = ~ismember('Y_neg', {S.name});
-    if tosave
-        save(mat_name, 'Y_neg', '-append');
-    end
-else
-    % 若你想單獨另存一份含 Y_neg 的 .mat（不覆蓋原檔），用下面這行：
-    % save(strrep(mat_name, '.mat', '_withNeg.mat'), 'SHC_lattice','Y','Y_neg','meta');
-end
-
+savefig(gcf, strrep(png_name_neg, '.png', '.fig'));  % 可選
 fprintf('Saved (negative plot): %s\n', png_name_neg);
+
+% ===== Append Y_neg into .mat =====
+mat_name = sprintf('SHC_MoverTz_scan_%s_%s.mat', ts, units_tag);
+if exist(mat_name,'file')
+    save(mat_name, 'Y_neg', '-append');
+else
+    % 若前面尚未寫入 .mat，就一併建立
+    if ~exist('meta','var'), meta = struct(); end
+    save(mat_name, 'SHC_lattice', 'Y', 'Y_neg', 'meta');
+end
+fprintf('MAT appended: %s (added Y_neg)\n', mat_name);
