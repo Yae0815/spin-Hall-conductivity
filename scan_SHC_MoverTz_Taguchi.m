@@ -11,7 +11,7 @@ clear; clc;
 %% ===== User controls =====
 % --- Lattice model ratios（建議覆現區間，含 TDSM/DSM 轉換） ---
 txy_over_tz_list = [0.5, 1.0, 1.5];    % 多條曲線
-M_over_tz_grid   = linspace(0.0, 2.0, 5);
+M_over_tz_grid   = linspace(0.0, 2.0, 101);
 
 % --- 固定的比例（對照 Taguchi 常用設定） ---
 eta_unit      = 0.89;          % 整體能量尺度（eV）
@@ -20,7 +20,7 @@ beta_over_tz  = 0.67;          % β/tz
 gamma_over_tz = 0.335;         % γ/tz (= (1/2)*β/tz)
 
 % --- 數值積分與展寬 ---
-params.Nk   = 41;              % odd; 增大可更平滑
+params.Nk   = 101;              % odd; 增大可更平滑
 params.eta  = 1e-4;            % Kubo broadening (eV)
 params.Ef   = 0.0;
 params.electronic_charge = 1.0;
@@ -74,6 +74,8 @@ elapsed = toc(t_start);
 
 %% ===== Plot =====
 figure('Color','w');
+co = [1 0 0; 0 0 1; 0.5 0 0.5];   % 紅、藍、紫 (RGB)
+set(gca,'ColorOrder',co,'NextPlot','replacechildren');
 hold on;
 for ir = 1:nRat
     plot(M_over_tz_grid, SHC(:,ir), 'LineWidth', 1.8);
@@ -101,3 +103,23 @@ meta = struct( ...
 save(mat_name, 'SHC', 'meta', 'comm_at_Gamma');
 
 fprintf('\nSaved: %s  and  %s\n', mat_name, png_name);
+
+%% ===== Plot (Y data inverted: -σ) =====
+figure('Color','w');
+co = [1 0 0; 0 0 1; 0.5 0 0.5];   % 紅、藍、紫 (RGB)
+set(gca,'ColorOrder',co,'NextPlot','replacechildren');
+hold on;
+for ir = 1:nRat
+    plot(M_over_tz_grid, -SHC(:,ir), 'LineWidth', 1.8);  % 注意這裡是負號
+end
+grid on;
+xlabel('M/t_z','FontSize',12);
+ylabel('-\sigma^{s_z}_{xy} (lattice units)','FontSize',12);
+ylim([-0.07 0.01])
+legstr = arrayfun(@(x) sprintf('t_{xy}/t_z = %.3f', x), txy_over_tz_list, 'UniformOutput', false);
+legend(legstr, 'Location','best', 'Interpreter','tex');
+title(sprintf('Spin Hall: -\\sigma^{s_z}_{xy} vs M/t_z  (Nk=%d, \\eta=%.0e eV)', params.Nk, params.eta));
+
+png_name_inv = sprintf('SHC_MoverTz_scan_yINV_%s.png', ts);
+exportgraphics(gcf, png_name_inv, 'Resolution', 200);
+fprintf('Saved inverted plot: %s\n', png_name_inv);
